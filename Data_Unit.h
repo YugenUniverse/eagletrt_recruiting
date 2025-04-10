@@ -18,20 +18,20 @@ class Data_Unit {
     const static uint8_t PAYLOAD_B_2=0xFF;
     const static uint8_t PAYLOAD_B_3=0x01;
 
+    std::string raw;
     uint16_t id;
     std::vector<uint8_t> payload;
     time_t timestamp;
 
+    void parse(const std::string& raw);
+    template <typename T>
+        T parser(const std::string& s);
 
 public:
+    Data_Unit(const std::string& msg,const time_t& ts);
 
-    explicit Data_Unit(const std::string& msg);
-
-    template <typename T>
-    T parse(const std::string& s);
-
-    bool isStart();
-    bool isStop();
+    bool isStart() const;
+    bool isStop() const;
 
     std::string getLog() const;
 
@@ -39,7 +39,7 @@ public:
 };
 
 template<typename T>
-T Data_Unit::parse(const std::string& s) {
+T Data_Unit::parser(const std::string& s) {
     return static_cast<T>(std::stoul(s,nullptr,16));
 }
 

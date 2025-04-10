@@ -4,6 +4,7 @@
 
 #ifndef COMPUTE_H
 #define COMPUTE_H
+#include <condition_variable>
 #include <queue>
 #include <fstream>
 #include <iostream>
@@ -11,7 +12,8 @@
 #include "Data_Unit.h"
 
 enum Status {IDLE,RUN};
-void compute(const bool& running,std::queue<std::string>& b, std::mutex& mtx);
-void log(const Data_Unit& unit);
-std::string newSession();
+void compute(bool& running,std::queue<std::string>& raws,std::queue<time_t>& times, std::mutex& mtx,std::condition_variable& cv);
+void log(const std::string& s,const time_t& ts);
+void log(const Data_Unit &unit);
+bool newSession();
 #endif //COMPUTE_H

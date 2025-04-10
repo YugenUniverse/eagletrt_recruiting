@@ -2,6 +2,7 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
+#include <condition_variable>
 #include <queue>
 #include "compute.h"
 
@@ -14,27 +15,34 @@ extern "C"{
 const char* filepath="../candump.log";
 bool running=true;
 mutex mtx;
+condition_variable cv;
 
-void read(queue<string>& b) {
+void read(queue<string>& r,queue<time_t>& t) {
     open_can(filepath);
     while (running){
         try {
             char raw[MAX_CAN_MESSAGE_SIZE];
             int bytes=can_receive(raw);
-            lock_guard<mutex> lock(mtx);
-            b.emplace(raw,bytes);
+            {
+                unique_lock<mutex> lock(mtx);
+                r.emplace(raw, bytes);
+                t.emplace(time(nullptr));
+            }
+            cv.notify_one();
         }catch(const length_error& e) {
             cerr << e.what() << endl;
             running=false;
         }
+        this_thread::sleep_for(chrono::milliseconds(1));
     }
     close_can();
 }
 
 int main() {
-    queue<string> buffer;
-    thread t1([&buffer](){read(buffer);});
-    thread t2([&buffer](){compute(running,buffer,mtx);});
+    queue<string> raw_queue;
+    queue<time_t> timestamp_queue;
+    thread t1([&raw_queue,&timestamp_queue](){read(raw_queue,timestamp_queue);});
+    thread t2([&raw_queue,&timestamp_queue](){compute(running,raw_queue,timestamp_queue,mtx,cv);});
 
     cout<<"Press ENTER for stop running"<<endl;
     cin.get();
