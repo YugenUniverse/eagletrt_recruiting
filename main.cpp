@@ -3,7 +3,7 @@
 #include <mutex>
 #include <chrono>
 #include <queue>
-#include "Data_Unit.h"
+#include "compute.h"
 
 using namespace std;
 
@@ -11,44 +11,33 @@ extern "C"{
     #include "fake_receiver.h"
 }
 
-const char* filepath="/home/yugen/Desktop/eagletrt_recruiting/candump.log";
+const char* filepath="../candump.log";
 bool running=true;
 mutex mtx;
 
-void read(queue<Data_Unit>& b) {
+void read(queue<string>& b) {
     open_can(filepath);
     while (running){
-        char raw[MAX_CAN_MESSAGE_SIZE];
-        int bytes=can_receive(raw);
-        lock_guard<mutex> lock(mtx);
-        try{
-            b.push(Data_Unit(string(raw, bytes)));
-        }catch (invalid_argument& e) {
-            cerr<<e.what()<<endl;
+        try {
+            char raw[MAX_CAN_MESSAGE_SIZE];
+            int bytes=can_receive(raw);
+            lock_guard<mutex> lock(mtx);
+            b.emplace(raw,bytes);
+        }catch(const length_error& e) {
+            cerr << e.what() << endl;
+            running=false;
         }
     }
     close_can();
 }
 
-void compute(queue<Data_Unit>& b) {
-    while (running) {
-        if (!b.empty()) {
-            lock_guard<mutex> lock(mtx);
-            cout<<b.front()<<endl;
-            b.pop();
-        }
-    }
-}
-
-
-int main(void) {
-    queue<Data_Unit> buffer;
+int main() {
+    queue<string> buffer;
     thread t1([&buffer](){read(buffer);});
-    thread t2([&buffer](){compute(buffer);});
+    thread t2([&buffer](){compute(running,buffer,mtx);});
 
     cout<<"Press ENTER for stop running"<<endl;
     cin.get();
-
     running=false;
     t1.join();
     t2.join();

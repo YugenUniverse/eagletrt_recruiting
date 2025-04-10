@@ -4,31 +4,43 @@
 
 #ifndef DATA_UNIT_H
 #define DATA_UNIT_H
-#include <iostream>
 #include <cstdint>
 #include <vector>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+
+
 
 class Data_Unit {
     const static uint16_t ID_SS =0x0A0;
-    const static uint32_t PAYLOAD_START_1=0x6601;
-    const static uint32_t PAYLOAD_START_2=0xFF01;
-    const static uint32_t PAYLOAD_STOP=0x66FF;
+    const static uint8_t PAYLOAD_B_1=0x66;
+    const static uint8_t PAYLOAD_B_2=0xFF;
+    const static uint8_t PAYLOAD_B_3=0x01;
 
     uint16_t id;
     std::vector<uint8_t> payload;
+    time_t timestamp;
 
 
 public:
 
-    Data_Unit(std::string msg);
+    explicit Data_Unit(const std::string& msg);
+
     template <typename T>
-    T parse(std::string s);
+    T parse(const std::string& s);
+
+    bool isStart();
+    bool isStop();
+
+    std::string getLog() const;
+
     friend std::ostream& operator<<(std::ostream& os, const Data_Unit& unit);
 };
 
-
 template<typename T>
-T Data_Unit::parse(std::string s) {
+T Data_Unit::parse(const std::string& s) {
     return static_cast<T>(std::stoul(s,nullptr,16));
 }
+
 #endif //DATA_UNIT_H
