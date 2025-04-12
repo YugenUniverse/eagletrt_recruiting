@@ -30,5 +30,8 @@ add_executable(project_2 main.cpp
         Data_Unit.h
         Data_Unit.cpp
         compute.cpp
-        compute.h)
+        compute.h
+        Stat_Unit.h
+        Stat_Unit.cpp
+)
 target_link_libraries(project_2 ${PROJECT_NAME})

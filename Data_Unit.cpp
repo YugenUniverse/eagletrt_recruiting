@@ -1,15 +1,20 @@
 #include "Data_Unit.h"
-
-#include <iostream>
-
-
-Data_Unit::Data_Unit(const std::string& msg,const time_t& ts) {
+Data_Unit::Data_Unit(const std::string& msg,const long long& ts) {
     timestamp = ts;
     raw = msg;
-    parse(raw);
+    id = 0;
+    payload.clear();
 }
 
-void Data_Unit::parse(const std::string& raw) {
+Data_Unit::Data_Unit(const Data_Unit &other) {
+    timestamp = other.timestamp;
+    raw = other.raw;
+    id = other.id;
+    payload = other.payload;
+}
+
+
+void Data_Unit::parse() {
     size_t hashPos = raw.find('#');
     if (hashPos == std::string::npos) {
         throw std::invalid_argument("# not found");
@@ -27,8 +32,8 @@ bool Data_Unit::isStart() const{
     if (id !=ID_SS) return false;
     if (payload.size() != 2) return false;
     //valid: 6601, FF01
-    if (payload[0] != PAYLOAD_B_1 && payload[0] != PAYLOAD_B_2) return false;
-    if (payload[1] != PAYLOAD_B_3) return false;
+    if (payload[0] != PAYLOAD_66 && payload[0] != PAYLOAD_FF) return false;
+    if (payload[1] != PAYLOAD_01) return false;
     return true;
 }
 
@@ -36,14 +41,14 @@ bool Data_Unit::isStop() const{
     if (id !=ID_SS) return false;
     if (payload.size() != 2) return false;
     //valid: 66FF
-    if (payload[0] != PAYLOAD_B_1) return false;
-    if (payload[1] != PAYLOAD_B_2) return false;
+    if (payload[0] != PAYLOAD_66) return false;
+    if (payload[1] != PAYLOAD_FF) return false;
     return true;
 }
 
 std::string Data_Unit::getLog() const{ return "("+std::to_string(timestamp)+")"+raw;}
 
-std::ostream &operator<<(std::ostream &os, const class Data_Unit &unit) {
+std::ostream &operator<<(std::ostream &os, const Data_Unit &unit) {
     os<<"ID: "<<unit.id<<" Payload: ";
     for (const auto& byte : unit.payload) {
         os<<static_cast<int>(byte)<<" ";
