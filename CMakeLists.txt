@@ -35,3 +35,8 @@ add_executable(project_2 main.cpp
         Stat_Unit.cpp
 )
 target_link_libraries(project_2 ${PROJECT_NAME})
+
+add_custom_command(TARGET project_2 PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/logs
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/stats
+)
