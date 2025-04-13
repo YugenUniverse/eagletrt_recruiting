@@ -12,18 +12,28 @@ extern "C"{
     #include "fake_receiver.h"
 }
 
-const char* filepath="../candump.log";
-bool running=true;
-mutex mtx;
-condition_variable cv;
 
-void read(queue<Data_Unit>& buffer);
+/**
+ * @brief read from CAN through fake_receiver
+ * @param running while loop keep alive
+ * @param buffer queue computed by compute thread
+ * @param mtx,cv same mutex and condition variable of compute thread for data race
+ */
+void read(bool& running,queue<Data_Unit>& buffer,mutex& mtx,condition_variable& cv);
+
+/**
+ * @brief return unix_timestamp of now in microsecond
+ * @return long long timestamp in microsecond
+ */
 long long getNow();
 
 int main() {
+    bool running=true;
+    mutex mtx;
+    condition_variable cv;
     queue<Data_Unit> buffer;
-    thread t1([&buffer](){read(buffer);});
-    thread t2([&buffer](){compute(running,buffer,mtx,cv);});
+    thread t1([&](){read(running,buffer,mtx,cv);});
+    thread t2([&](){compute(running,buffer,mtx,cv);});
 
     cout<<"Press ENTER for stop running"<<endl;
     cin.get();
@@ -33,27 +43,23 @@ int main() {
     return 0;
 }
 
-void read(queue<Data_Unit>& buffer) {
+void read(bool& running,queue<Data_Unit>& buffer,mutex& mtx,condition_variable& cv) {
+    const char*&& filepath="../candump.log";
     open_can(filepath);
     while (running){
-        try {
             char raw[MAX_CAN_MESSAGE_SIZE];
             int bytes=can_receive(raw);
-            {
+            if (bytes != -1){
                 unique_lock<mutex> lock(mtx);
-                auto now=
                 buffer.emplace(string(raw,bytes), getNow());
             }
+            else running=false;
             cv.notify_one();
-        }catch(const length_error& e) {
-            cerr << e.what() << endl;
-            running=false;
-        }
-        this_thread::sleep_for(chrono::nanoseconds(5));
     }
     close_can();
 }
 
 long long getNow() {
-    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
 }
